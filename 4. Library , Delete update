@@ -1,0 +1,67 @@
+-- Step 0: Create or reset the database
+DROP DATABASE IF EXISTS LibraryDB4;
+CREATE DATABASE LibraryDB4;
+USE LibraryDB4;
+
+-- Step 1: Create the main Library table
+CREATE TABLE Library (
+    bid INT PRIMARY KEY,
+    bname VARCHAR(100),
+    doi DATE,
+    status VARCHAR(20)
+);
+
+-- Step 2: Create the Library_Audit table to store logs
+CREATE TABLE Library_Audit (
+    bid INT,
+    bname VARCHAR(100),
+    doi DATE,
+    status VARCHAR(20),
+    action_type VARCHAR(10),
+    timestampofquery TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Step 3: Create AFTER UPDATE trigger to log OLD values
+
+DELIMITER $$
+
+CREATE TRIGGER trg_after_update_log
+AFTER UPDATE ON Library
+FOR EACH ROW
+BEGIN
+    INSERT INTO Library_Audit (bid, bname, doi, status, action_type)
+    VALUES (OLD.bid, OLD.bname, OLD.doi, OLD.status, 'UPDATE');
+END$$
+
+DELIMITER ;
+
+-- Step 4: Create BEFORE DELETE trigger to log OLD values
+
+DELIMITER $$
+
+CREATE TRIGGER trg_before_delete_log
+BEFORE DELETE ON Library
+FOR EACH ROW
+BEGIN
+    INSERT INTO Library_Audit (bid, bname, doi, status, action_type)
+    VALUES (OLD.bid, OLD.bname, OLD.doi, OLD.status, 'DELETE');
+END$$
+
+DELIMITER ;
+
+-- Step 5: Insert some sample data
+INSERT INTO Library VALUES (1, 'DBMS Book', '2024-05-01', 'ISSUE');
+INSERT INTO Library VALUES (2, 'C++ Book', '2024-04-25', 'RETURN');
+
+-- Step 6: Perform an UPDATE to trigger audit
+UPDATE Library
+SET status = 'FINE'
+WHERE bid = 1;
+
+-- Step 7: Perform a DELETE to trigger audit
+DELETE FROM Library
+WHERE bid = 2;
+
+-- Step 8: Display output
+SELECT * FROM Library;
+SELECT * FROM Library_Audit;
