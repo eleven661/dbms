@@ -1,0 +1,49 @@
+db.games.drop();
+
+// Step 1 & 2: Create 'games' collection and insert 5 games
+db.games.insertMany([
+  {
+    name: "Call of Victory",
+    gametype: "FPS",
+    score: 89,
+    achievements: ["Sharp Shooter", "Speed Demon"]
+  },
+  {
+    name: "MindMaze",
+    gametype: "Puzzle",
+    score: 95,
+    achievements: ["Brain Master", "Game Master"]
+  },
+  {
+    name: "Street Drift",
+    gametype: "Racing",
+    score: 91,
+    achievements: ["Speed Demon", "Road King"]
+  },
+  {
+    name: "Empire Rise",
+    gametype: "Strategy",
+    score: 87,
+    achievements: ["Game Master", "Conqueror"]
+  },
+  {
+    name: "Galaxy Wars",
+    gametype: "Sci-fi",
+    score: 98,
+    achievements: ["Game Master", "Speed Demon", "Sharp Shooter"]
+  }
+]);
+
+// Step 3: Return all the games
+print("\n--- All Games ---");
+db.games.find().forEach(doc => printjson(doc));
+
+// Step 4: Return the 3 highest scored games
+print("\n--- Top 3 Highest Scored Games ---");
+db.games.find().sort({ score: -1 }).limit(3).forEach(doc => printjson(doc));
+
+// Step 5: Games with both 'Game Master' and 'Speed Demon' achievements
+print("\n--- Games with 'Game Master' AND 'Speed Demon' Achievements ---");
+db.games.find({
+  achievements: { $all: ["Game Master", "Speed Demon"] }
+}).forEach(doc => printjson(doc));
