@@ -1,0 +1,99 @@
+-- Step 0: Create database and use it
+DROP DATABASE IF EXISTS LibraryDB;
+CREATE DATABASE LibraryDB;
+USE LibraryDB;
+
+-- Step 1: Create main Library table
+CREATE TABLE Library (
+    bid INT PRIMARY KEY,
+    bname VARCHAR(100),
+    doi DATE,
+    status VARCHAR(20)
+);
+
+-- Step 2: Create Library_Audit table
+CREATE TABLE Library_Audit (
+    bid INT,
+    bname VARCHAR(100),
+    noc INT,
+    timestampofquery TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fine INT DEFAULT 0
+);
+
+-- Step 3: Create trigger BEFORE INSERT or UPDATE to handle ISSUE/RETURN status and noc
+
+DELIMITER $$
+
+CREATE TRIGGER trg_before_insert_update
+BEFORE INSERT ON Library
+FOR EACH ROW
+BEGIN
+    DECLARE current_noc INT DEFAULT 0;
+
+    -- Check if record already exists in Library_Audit
+    SELECT noc INTO current_noc FROM Library_Audit WHERE bid = NEW.bid LIMIT 1;
+
+    IF NEW.status = 'ISSUE' THEN
+        SET current_noc = current_noc - 1;
+    ELSEIF NEW.status = 'RETURN' THEN
+        SET current_noc = current_noc + 1;
+    END IF;
+
+    -- Insert or update noc in audit table
+    INSERT INTO Library_Audit (bid, bname, noc)
+    VALUES (NEW.bid, NEW.bname, current_noc)
+    ON DUPLICATE KEY UPDATE
+        noc = current_noc,
+        timestampofquery = CURRENT_TIMESTAMP;
+END$$
+
+DELIMITER ;
+
+-- Step 4: Create AFTER UPDATE trigger to check for fine if doi > 20 days
+
+DELIMITER $$
+
+CREATE TRIGGER trg_after_update_fine
+AFTER UPDATE ON Library
+FOR EACH ROW
+BEGIN
+    DECLARE days_diff INT;
+    DECLARE updated_noc INT;
+
+    SET days_diff = DATEDIFF(CURRENT_DATE, NEW.doi);
+
+    IF days_diff > 20 THEN
+        -- Update status to FINE in main table
+        UPDATE Library SET status = 'FINE' WHERE bid = NEW.bid;
+
+        -- Get the latest noc for audit update
+        SELECT noc INTO updated_noc FROM Library_Audit WHERE bid = NEW.bid LIMIT 1;
+
+        -- Update fine = days_diff * 10
+        UPDATE Library_Audit
+        SET fine = days_diff * 10,
+            timestampofquery = CURRENT_TIMESTAMP
+        WHERE bid = NEW.bid;
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- Step 5: Sample inserts to test
+
+-- Insert a book with RETURN
+INSERT INTO Library (bid, bname, doi, status)
+VALUES (101, 'MySQL Essentials', CURDATE(), 'RETURN');
+
+-- Insert a book with ISSUE
+INSERT INTO Library (bid, bname, doi, status)
+VALUES (101, 'MySQL Essentials', CURDATE(), 'ISSUE');
+
+-- Update with doi more than 20 days ago
+UPDATE Library
+SET doi = DATE_SUB(CURDATE(), INTERVAL 25 DAY)
+WHERE bid = 101;
+
+-- Show results
+SELECT * FROM Library;
+SELECT * FROM Library_Audit;
