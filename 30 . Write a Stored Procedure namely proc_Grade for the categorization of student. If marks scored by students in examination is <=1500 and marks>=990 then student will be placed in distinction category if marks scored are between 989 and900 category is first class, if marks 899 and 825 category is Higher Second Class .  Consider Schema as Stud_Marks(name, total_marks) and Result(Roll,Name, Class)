@@ -1,0 +1,62 @@
+-- Use a test database or create one
+CREATE DATABASE IF NOT EXISTS StudentDB;
+USE StudentDB;
+
+-- Drop tables if they exist
+DROP TABLE IF EXISTS Stud_Marks;
+DROP TABLE IF EXISTS Result;
+
+-- Create Stud_Marks table
+CREATE TABLE Stud_Marks (
+    Roll INT PRIMARY KEY AUTO_INCREMENT,
+    Name VARCHAR(100) NOT NULL,
+    total_marks INT NOT NULL CHECK (total_marks >= 0 AND total_marks <= 1500)
+);
+
+-- Create Result table
+CREATE TABLE Result (
+    Roll INT PRIMARY KEY,
+    Name VARCHAR(100) NOT NULL,
+    Class VARCHAR(50) NOT NULL
+);
+
+-- Insert sample data
+INSERT INTO Stud_Marks (Name, total_marks) VALUES
+('Alice', 1450),
+('Bob', 920),
+('Charlie', 880),
+('David', 1000),
+('Eve', 840),
+('Frank', 700);
+
+-- Drop procedure if exists
+DROP PROCEDURE IF EXISTS proc_Grade;
+
+DELIMITER $$
+
+CREATE PROCEDURE proc_Grade()
+BEGIN
+    -- Clear the Result table before insertion
+    DELETE FROM Result;
+
+    -- Insert categorized students
+    INSERT INTO Result (Roll, Name, Class)
+    SELECT 
+        Roll,
+        Name,
+        CASE
+            WHEN total_marks BETWEEN 990 AND 1500 THEN 'Distinction'
+            WHEN total_marks BETWEEN 900 AND 989 THEN 'First Class'
+            WHEN total_marks BETWEEN 825 AND 899 THEN 'Higher Second Class'
+            ELSE 'No Category'
+        END AS Class
+    FROM Stud_Marks;
+END $$
+
+DELIMITER ;
+
+-- Call the procedure to categorize students
+CALL proc_Grade();
+
+-- Display the Result table
+SELECT * FROM Result;
