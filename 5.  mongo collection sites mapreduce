@@ -1,10 +1,6 @@
-// Step 0: Switch or create a database
-use siteAnalyticsDB;
-
-// Step 1: Drop the collection if it already exists
 db.sites.drop();
 
-// Step 2: Create and insert sample documents into `sites` collection
+// Step 2: Create and insert sample documents into sites collection
 db.sites.insertMany([
   { url: "https://example.com", dateofaccess: new Date("2024-01-10") },
   { url: "https://example.com", dateofaccess: new Date("2024-01-20") },
