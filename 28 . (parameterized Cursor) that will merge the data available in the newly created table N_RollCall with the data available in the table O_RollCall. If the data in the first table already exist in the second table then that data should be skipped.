@@ -1,0 +1,78 @@
+-- Create database and use it
+CREATE DATABASE IF NOT EXISTS RollCallDB;
+USE RollCallDB;
+
+-- Drop tables if exist
+DROP TABLE IF EXISTS N_RollCall;
+DROP TABLE IF EXISTS O_RollCall;
+
+-- Create tables
+CREATE TABLE O_RollCall (
+    Roll_no INT PRIMARY KEY,
+    Name VARCHAR(100),
+    Attendance DATE
+);
+
+CREATE TABLE N_RollCall (
+    Roll_no INT PRIMARY KEY,
+    Name VARCHAR(100),
+    Attendance DATE
+);
+
+-- Insert sample data into O_RollCall
+INSERT INTO O_RollCall VALUES
+(1, 'Alice', '2025-05-01'),
+(2, 'Bob', '2025-05-01');
+
+-- Insert sample data into N_RollCall
+INSERT INTO N_RollCall VALUES
+(2, 'Bob', '2025-05-01'),       -- duplicate, should be skipped
+(3, 'Charlie', '2025-05-01'),   -- new record, should be inserted
+(4, 'David', '2025-05-01');     -- new record, should be inserted
+
+-- Drop procedure if exists
+DROP PROCEDURE IF EXISTS MergeRollCalls;
+
+DELIMITER $$
+
+CREATE PROCEDURE MergeRollCalls()
+BEGIN
+    DECLARE done INT DEFAULT FALSE;
+    DECLARE v_Roll_no INT;
+    DECLARE v_Name VARCHAR(100);
+    DECLARE v_Attendance DATE;
+
+    -- Cursor for N_RollCall table
+    DECLARE cur CURSOR FOR SELECT Roll_no, Name, Attendance FROM N_RollCall;
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+
+    OPEN cur;
+
+    read_loop: LOOP
+        FETCH cur INTO v_Roll_no, v_Name, v_Attendance;
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+
+        -- Check if record already exists in O_RollCall
+        IF NOT EXISTS (
+            SELECT 1 FROM O_RollCall WHERE Roll_no = v_Roll_no
+        ) THEN
+            -- Insert into O_RollCall if not exists
+            INSERT INTO O_RollCall (Roll_no, Name, Attendance)
+            VALUES (v_Roll_no, v_Name, v_Attendance);
+        END IF;
+
+    END LOOP;
+
+    CLOSE cur;
+
+    -- Display the merged table after operation
+    SELECT * FROM O_RollCall ORDER BY Roll_no;
+
+END $$
+
+DELIMITER ;
+
+-- Call the procedure
+CALL MergeRollCalls();
