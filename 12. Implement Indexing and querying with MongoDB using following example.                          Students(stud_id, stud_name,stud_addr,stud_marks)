@@ -1,0 +1,28 @@
+db.Students.drop()
+
+db.Students.insertMany([
+  { stud_id: 1, stud_name: "Alice", stud_addr: "Pune", stud_marks: 85 },
+  { stud_id: 2, stud_name: "Bob", stud_addr: "Mumbai", stud_marks: 92 },
+  { stud_id: 3, stud_name: "Charlie", stud_addr: "Pune", stud_marks: 76 },
+  { stud_id: 4, stud_name: "David", stud_addr: "Delhi", stud_marks: 88 },
+  { stud_id: 5, stud_name: "Eva", stud_addr: "Mumbai", stud_marks: 95 },
+  { stud_id: 6, stud_name: "Frank", stud_addr: "Delhi", stud_marks: 65 }
+])
+
+db.Students.createIndex({ stud_name: 1 })
+db.Students.createIndex({ stud_addr: 1, stud_marks: -1 })
+
+print("===== Existing Indexes =====")
+db.Students.getIndexes().forEach(i => printjson(i))
+
+print("\n===== Query: Find student with name 'Bob' =====")
+printjson(db.Students.findOne({ stud_name: "Bob" }))
+
+print("\n===== Query: Students from Mumbai with marks >= 90 =====")
+db.Students.find({ stud_addr: "Mumbai", stud_marks: { $gte: 90 } }).forEach(doc => printjson(doc))
+
+print("\n===== Query: Students with marks > 80 =====")
+db.Students.find({ stud_marks: { $gt: 80 } }).forEach(doc => printjson(doc))
+
+print("\n===== All Students =====")
+db.Students.find().forEach(doc => printjson(doc))
