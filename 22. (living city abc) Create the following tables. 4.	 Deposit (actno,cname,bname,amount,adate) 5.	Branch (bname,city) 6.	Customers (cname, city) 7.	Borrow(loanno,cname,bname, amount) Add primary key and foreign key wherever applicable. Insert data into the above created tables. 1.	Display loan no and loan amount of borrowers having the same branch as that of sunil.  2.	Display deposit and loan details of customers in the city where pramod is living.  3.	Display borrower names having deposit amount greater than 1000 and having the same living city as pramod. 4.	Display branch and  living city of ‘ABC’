@@ -1,0 +1,105 @@
+-- Create database and use it
+CREATE DATABASE IF NOT EXISTS bankDB5;
+USE bankDB5;
+
+-- Drop tables if exist to avoid conflicts
+DROP TABLE IF EXISTS Borrow;
+DROP TABLE IF EXISTS Deposit;
+DROP TABLE IF EXISTS Customers;
+DROP TABLE IF EXISTS Branch;
+
+-- Create Branch table
+CREATE TABLE Branch (
+    bname VARCHAR(50) PRIMARY KEY,
+    city VARCHAR(50) NOT NULL
+);
+
+-- Create Customers table
+CREATE TABLE Customers (
+    cname VARCHAR(100) PRIMARY KEY,
+    city VARCHAR(50) NOT NULL
+);
+
+-- Create Deposit table
+CREATE TABLE Deposit (
+    actno INT PRIMARY KEY,
+    cname VARCHAR(100),
+    bname VARCHAR(50),
+    amount DECIMAL(12,2) NOT NULL CHECK (amount >= 0),
+    adate DATE NOT NULL,
+    FOREIGN KEY (cname) REFERENCES Customers(cname),
+    FOREIGN KEY (bname) REFERENCES Branch(bname)
+);
+
+-- Create Borrow table
+CREATE TABLE Borrow (
+    loanno INT PRIMARY KEY,
+    cname VARCHAR(100),
+    bname VARCHAR(50),
+    amount DECIMAL(12,2) NOT NULL CHECK (amount >= 0),
+    FOREIGN KEY (cname) REFERENCES Customers(cname),
+    FOREIGN KEY (bname) REFERENCES Branch(bname)
+);
+
+-- Insert sample data into Branch
+INSERT INTO Branch VALUES
+('B1', 'Pune'),
+('B2', 'Mumbai'),
+('B3', 'Delhi');
+
+-- Insert sample data into Customers
+INSERT INTO Customers VALUES
+('Sunil', 'Mumbai'),
+('Pramod', 'Pune'),
+('ABC', 'Delhi'),
+('Ravi', 'Pune'),
+('Anita', 'Pune'),
+('Kiran', 'Delhi');
+
+-- Insert sample data into Deposit
+INSERT INTO Deposit VALUES
+(101, 'Sunil', 'B2', 1500, '2024-05-10'),
+(102, 'Pramod', 'B1', 1200, '2024-05-11'),
+(103, 'ABC', 'B3', 900, '2024-05-12'),
+(104, 'Ravi', 'B1', 1100, '2024-05-13'),
+(105, 'Anita', 'B1', 1300, '2024-05-14'),
+(106, 'Kiran', 'B3', 700, '2024-05-15');
+
+-- Insert sample data into Borrow
+INSERT INTO Borrow VALUES
+(201, 'Sunil', 'B2', 10000),
+(202, 'Pramod', 'B1', 8000),
+(203, 'Ravi', 'B1', 12000),
+(204, 'Kiran', 'B3', 9000),
+(205, 'Anita', 'B1', 11000);
+
+-- 1. Display loan no and loan amount of borrowers having the same branch as that of Sunil
+SELECT loanno, amount
+FROM Borrow
+WHERE bname = (SELECT bname FROM Borrow WHERE cname = 'Sunil');
+
+-- 2. Display deposit and loan details of customers in the city where Pramod is living
+SELECT 
+    d.cname AS customer_name, 
+    d.actno, 
+    d.amount AS deposit_amount, 
+    d.adate,
+    br.loanno,
+    br.amount AS loan_amount
+FROM Customers c
+LEFT JOIN Deposit d ON c.cname = d.cname
+LEFT JOIN Borrow br ON c.cname = br.cname
+WHERE c.city = (SELECT city FROM Customers WHERE cname = 'Pramod');
+
+-- 3. Display borrower names having deposit amount greater than 1000 and having the same living city as Pramod
+SELECT DISTINCT br.cname
+FROM Borrow br
+JOIN Deposit d ON br.cname = d.cname
+JOIN Customers c ON br.cname = c.cname
+WHERE d.amount > 1000 AND c.city = (SELECT city FROM Customers WHERE cname = 'Pramod');
+
+-- 4. Display branch and living city of ‘ABC’
+SELECT d.bname AS branch_name, c.city AS living_city
+FROM Customers c
+LEFT JOIN Deposit d ON c.cname = d.cname
+WHERE c.cname = 'ABC';
