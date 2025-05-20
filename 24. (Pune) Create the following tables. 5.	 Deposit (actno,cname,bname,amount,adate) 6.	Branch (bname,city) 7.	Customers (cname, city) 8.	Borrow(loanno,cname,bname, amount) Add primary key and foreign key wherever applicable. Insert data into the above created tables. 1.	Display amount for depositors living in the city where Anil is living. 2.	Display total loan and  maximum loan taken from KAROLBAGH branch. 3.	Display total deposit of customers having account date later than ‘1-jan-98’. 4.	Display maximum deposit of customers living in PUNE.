@@ -1,0 +1,95 @@
+-- Create and use database
+CREATE DATABASE IF NOT EXISTS bankDB24;
+USE bankDB24;
+
+-- Drop tables if they exist
+DROP TABLE IF EXISTS Borrow;
+DROP TABLE IF EXISTS Deposit;
+DROP TABLE IF EXISTS Customers;
+DROP TABLE IF EXISTS Branch;
+
+-- Create Branch table
+CREATE TABLE Branch (
+    bname VARCHAR(50) PRIMARY KEY,
+    city VARCHAR(50) NOT NULL
+);
+
+-- Create Customers table
+CREATE TABLE Customers (
+    cname VARCHAR(100) PRIMARY KEY,
+    city VARCHAR(50) NOT NULL
+);
+
+-- Create Deposit table
+CREATE TABLE Deposit (
+    actno INT PRIMARY KEY,
+    cname VARCHAR(100),
+    bname VARCHAR(50),
+    amount DECIMAL(12,2) NOT NULL CHECK (amount >= 0),
+    adate DATE NOT NULL,
+    FOREIGN KEY (cname) REFERENCES Customers(cname),
+    FOREIGN KEY (bname) REFERENCES Branch(bname)
+);
+
+-- Create Borrow table
+CREATE TABLE Borrow (
+    loanno INT PRIMARY KEY,
+    cname VARCHAR(100),
+    bname VARCHAR(50),
+    amount DECIMAL(12,2) NOT NULL CHECK (amount >= 0),
+    FOREIGN KEY (cname) REFERENCES Customers(cname),
+    FOREIGN KEY (bname) REFERENCES Branch(bname)
+);
+
+-- Insert sample data into Branch
+INSERT INTO Branch VALUES
+('KAROLBAGH', 'Delhi'),
+('B1', 'Pune'),
+('B2', 'Mumbai');
+
+-- Insert sample data into Customers
+INSERT INTO Customers VALUES
+('Anil', 'Delhi'),
+('Sunil', 'Mumbai'),
+('Pramod', 'Pune'),
+('Ravi', 'Pune'),
+('ABC', 'Delhi');
+
+-- Insert sample data into Deposit
+INSERT INTO Deposit VALUES
+(101, 'Anil', 'KAROLBAGH', 2000, '1999-05-10'),
+(102, 'Sunil', 'B2', 1500, '1998-12-31'),
+(103, 'Pramod', 'B1', 1800, '2000-01-05'),
+(104, 'Ravi', 'B1', 2200, '2001-07-20'),
+(105, 'ABC', 'KAROLBAGH', 1700, '1997-08-14');
+
+-- Insert sample data into Borrow
+INSERT INTO Borrow VALUES
+(201, 'Anil', 'KAROLBAGH', 10000),
+(202, 'Sunil', 'B2', 8000),
+(203, 'Ravi', 'B1', 12000),
+(204, 'ABC', 'KAROLBAGH', 9000);
+
+-- 1. Display amount for depositors living in the city where Anil is living
+SELECT d.cname, d.amount
+FROM Deposit d
+JOIN Customers c ON d.cname = c.cname
+WHERE c.city = (SELECT city FROM Customers WHERE cname = 'Anil');
+
+-- 2. Display total loan and maximum loan taken from KAROLBAGH branch
+SELECT 
+    SUM(amount) AS total_loan_amount,
+    MAX(amount) AS max_loan_amount
+FROM Borrow
+WHERE bname = 'KAROLBAGH';
+
+-- 3. Display total deposit of customers having account date later than '1-jan-98'
+SELECT SUM(amount) AS total_deposit_after_1998
+FROM Deposit
+WHERE adate > '1998-01-01';
+
+-- 4. Display maximum deposit of customers living in PUNE
+SELECT MAX(d.amount) AS max_deposit_pune
+FROM Deposit d
+JOIN Customers c ON d.cname = c.cname
+WHERE c.city = 'Pune';
