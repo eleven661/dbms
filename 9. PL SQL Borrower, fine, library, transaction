@@ -1,0 +1,122 @@
+-- Drop tables if they exist
+DROP TABLE IF EXISTS Borrower;
+DROP TABLE IF EXISTS Fine;
+DROP TABLE IF EXISTS Library;
+DROP TABLE IF EXISTS transaction;
+
+-- Create tables
+CREATE TABLE Borrower (
+    Rollin INT PRIMARY KEY,
+    Name VARCHAR(100),
+    DateofIssue DATE,
+    NameofBook VARCHAR(100),
+    Status CHAR(1)  -- 'I' issued, 'R' returned
+);
+
+CREATE TABLE Fine (
+    Roll_no INT,
+    Date DATE,
+    Amt INT
+);
+
+CREATE TABLE Library (
+    bid INT PRIMARY KEY,
+    bname VARCHAR(100),
+    doi DATE,
+    status CHAR(1),  -- 'I' or 'R'
+    noc INT
+);
+
+CREATE TABLE transaction (
+    tid INT PRIMARY KEY,
+    bid INT,
+    bname VARCHAR(100),
+    status CHAR(1)  -- 'I' or 'R'
+);
+
+-- Insert sample data
+INSERT INTO Library VALUES
+(101, 'Database Systems', '2024-04-01', 'I', 5),
+(102, 'Operating Systems', '2024-04-10', 'I', 3);
+
+INSERT INTO Borrower VALUES
+(1, 'Rahul Sharma', '2024-04-01', 'Database Systems', 'I'),
+(2, 'Anita Rao', '2024-03-15', 'Operating Systems', 'I');
+
+INSERT INTO transaction VALUES
+(1001, 101, 'Database Systems', 'I'),
+(1002, 102, 'Operating Systems', 'I');
+
+DELIMITER $$
+
+CREATE PROCEDURE return_book (
+    IN p_rollno INT,
+    IN p_bookname VARCHAR(100)
+)
+BEGIN
+    DECLARE v_dateofissue DATE;
+    DECLARE v_days INT;
+    DECLARE v_amt INT DEFAULT 0;
+    DECLARE v_bid INT;
+    DECLARE v_noc INT;
+
+    -- Check if book is issued
+    IF NOT EXISTS (
+        SELECT 1 FROM Borrower 
+        WHERE Rollin = p_rollno AND NameofBook = p_bookname AND Status = 'I'
+    ) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Book not currently issued or record not found.';
+    END IF;
+
+    -- Get date of issue
+    SELECT DateofIssue INTO v_dateofissue
+    FROM Borrower
+    WHERE Rollin = p_rollno AND NameofBook = p_bookname;
+
+    SET v_days = DATEDIFF(CURDATE(), v_dateofissue);
+
+    -- Calculate fine
+    IF v_days BETWEEN 15 AND 30 THEN
+        SET v_amt = v_days * 5;
+    ELSEIF v_days > 30 THEN
+        SET v_amt = v_days * 50;
+    END IF;
+
+    -- Insert fine if applicable
+    IF v_amt > 0 THEN
+        INSERT INTO Fine (Roll_no, Date, Amt) VALUES (p_rollno, CURDATE(), v_amt);
+    END IF;
+
+    -- Update borrower status
+    UPDATE Borrower SET Status = 'R' WHERE Rollin = p_rollno AND NameofBook = p_bookname;
+
+    -- Get book id and current noc
+    SELECT bid, noc INTO v_bid, v_noc FROM Library WHERE bname = p_bookname;
+
+    -- Update transaction status
+    UPDATE transaction SET status = 'R' WHERE bid = v_bid;
+
+    -- Increase noc and update status in Library
+    UPDATE Library SET noc = noc + 1, status = 'R' WHERE bid = v_bid;
+
+    -- Output message
+    SELECT CONCAT('Book returned by Roll No ', p_rollno, '. Days kept: ', v_days, ', Fine: Rs.', v_amt) AS Result;
+END $$
+
+DELIMITER ;
+
+-- Test the procedure (run this after code above)
+
+CALL return_book(1, 'Database Systems');
+
+-- Check Fine table after return to see fines inserted (if any)
+SELECT * FROM Fine;
+
+-- Check Borrower table status updated
+SELECT * FROM Borrower;
+
+-- Check Library table noc updated
+SELECT * FROM Library;
+
+-- Check transaction table status updated
+SELECT * FROM transaction;
