@@ -1,0 +1,177 @@
+-- 1. Create tables
+
+CREATE TABLE DEPARTMENT (
+    Dname VARCHAR(30),
+    Dno INT PRIMARY KEY,
+    Mgr_ssn CHAR(9),
+    Mgr_start_date DATE
+);
+
+CREATE TABLE EMPLOYEE (
+    Fname VARCHAR(20),
+    Minit CHAR(1),
+    Lname VARCHAR(20),
+    Ssn CHAR(9) PRIMARY KEY,
+    Bdate DATE,
+    Address VARCHAR(100),
+    Sex CHAR(1),
+    Salary DECIMAL(10,2),
+    Dno INT,
+    FOREIGN KEY (Dno) REFERENCES DEPARTMENT(Dno)
+);
+
+CREATE TABLE DEPT_LOCATIONS (
+    Dnumber INT,
+    Dlocation VARCHAR(50),
+    PRIMARY KEY (Dnumber, Dlocation),
+    FOREIGN KEY (Dnumber) REFERENCES DEPARTMENT(Dno)
+);
+
+CREATE TABLE PROJECT (
+    Pname VARCHAR(50),
+    Pnumber INT PRIMARY KEY,
+    Plocation VARCHAR(50),
+    Dno INT,
+    FOREIGN KEY (Dno) REFERENCES DEPARTMENT(Dno)
+);
+
+CREATE TABLE WORKS_ON (
+    Essn CHAR(9),
+    Pno INT,
+    Hours DECIMAL(4,2),
+    PRIMARY KEY (Essn, Pno),
+    FOREIGN KEY (Essn) REFERENCES EMPLOYEE(Ssn),
+    FOREIGN KEY (Pno) REFERENCES PROJECT(Pnumber)
+);
+
+CREATE TABLE DEPENDENT (
+    Essn CHAR(9),
+    Dependent_name VARCHAR(50),
+    Sex CHAR(1),
+    Bdate DATE,
+    Relationship VARCHAR(25),
+    PRIMARY KEY (Essn, Dependent_name),
+    FOREIGN KEY (Essn) REFERENCES EMPLOYEE(Ssn)
+);
+
+-- 2. Insert sample data
+
+INSERT INTO DEPARTMENT VALUES
+('Research', 1, '123456789', '2020-01-01'),
+('Administration', 2, '987654321', '2019-06-15');
+
+INSERT INTO EMPLOYEE VALUES
+('John', 'A', 'Smith', '123456789', '1980-02-15', '100 Main St, Houston, TX', 'M', 60000, 1),
+('Jane', 'B', 'Doe', '987654321', '1975-09-10', '200 Oak St, Houston, TX', 'F', 75000, 2),
+('Alice', 'C', 'Johnson', '111223333', '1990-04-22', '300 Pine St, Dallas, TX', 'F', 55000, 1),
+('Bob', 'D', 'Brown', '222334444', '1985-11-30', '400 Cedar St, Stafford, TX', 'M', 50000, 1);
+
+INSERT INTO DEPT_LOCATIONS VALUES
+(1, 'Houston'),
+(1, 'Stafford'),
+(2, 'Dallas');
+
+INSERT INTO PROJECT VALUES
+('ProductX', 101, 'Stafford', 1),
+('ProductY', 102, 'Dallas', 1),
+('ProductZ', 103, 'Houston', 2);
+
+INSERT INTO WORKS_ON VALUES
+('123456789', 101, 40),
+('111223333', 101, 20),
+('987654321', 103, 35),
+('222334444', 102, 10);
+
+-- 3. Queries
+
+-- Query 1: For every project located in ‘Stafford’, list project number, controlling dept no, dept manager’s last name, address, birth date
+
+SELECT
+    P.Pnumber,
+    P.Dno,
+    E.Lname AS Manager_LastName,
+    E.Address AS Manager_Address,
+    E.Bdate AS Manager_BirthDate
+FROM
+    PROJECT P
+JOIN DEPARTMENT D ON P.Dno = D.Dno
+JOIN EMPLOYEE E ON D.Mgr_ssn = E.Ssn
+WHERE
+    P.Plocation = 'Stafford';
+
+-- Query 2: List all project numbers for projects that involve employee with last name ‘Smith’, as worker or as manager of controlling dept
+
+SELECT DISTINCT P.Pnumber
+FROM PROJECT P
+LEFT JOIN WORKS_ON W ON P.Pnumber = W.Pno
+LEFT JOIN EMPLOYEE E1 ON W.Essn = E1.Ssn
+LEFT JOIN DEPARTMENT D ON P.Dno = D.Dno
+LEFT JOIN EMPLOYEE E2 ON D.Mgr_ssn = E2.Ssn
+WHERE
+    E1.Lname = 'Smith'
+    OR E2.Lname = 'Smith';
+
+-- Query 3: Retrieve all employees whose address is in Houston, Texas
+
+SELECT *
+FROM EMPLOYEE
+WHERE Address LIKE '%Houston, TX%';
+
+-- Query 4: Show the resulting salaries if every employee working on ‘ProductX’ project is given a 10% raise
+
+SELECT 
+    E.Ssn,
+    E.Fname,
+    E.Lname,
+    E.Salary,
+    ROUND(E.Salary * 1.10, 2) AS New_Salary
+FROM EMPLOYEE E
+JOIN WORKS_ON W ON E.Ssn = W.Essn
+JOIN PROJECT P ON W.Pno = P.Pnumber
+WHERE P.Pname = 'ProductX';
+
+-- Show output of Query 1
+-- For project located in Stafford
+SELECT
+    P.Pnumber,
+    P.Dno,
+    E.Lname AS Manager_LastName,
+    E.Address AS Manager_Address,
+    E.Bdate AS Manager_BirthDate
+FROM
+    PROJECT P
+JOIN DEPARTMENT D ON P.Dno = D.Dno
+JOIN EMPLOYEE E ON D.Mgr_ssn = E.Ssn
+WHERE
+    P.Plocation = 'Stafford';
+
+-- Show output of Query 2
+-- Projects involving employee named Smith (worker or manager)
+SELECT DISTINCT P.Pnumber
+FROM PROJECT P
+LEFT JOIN WORKS_ON W ON P.Pnumber = W.Pno
+LEFT JOIN EMPLOYEE E1 ON W.Essn = E1.Ssn
+LEFT JOIN DEPARTMENT D ON P.Dno = D.Dno
+LEFT JOIN EMPLOYEE E2 ON D.Mgr_ssn = E2.Ssn
+WHERE
+    E1.Lname = 'Smith'
+    OR E2.Lname = 'Smith';
+
+-- Show output of Query 3
+-- Employees in Houston, TX
+SELECT *
+FROM EMPLOYEE
+WHERE Address LIKE '%Houston, TX%';
+
+-- Show output of Query 4
+-- Salary after 10% raise for ProductX project employees
+SELECT 
+    E.Ssn,
+    E.Fname,
+    E.Lname,
+    E.Salary,
+    ROUND(E.Salary * 1.10, 2) AS New_Salary
+FROM EMPLOYEE E
+JOIN WORKS_ON W ON E.Ssn = W.Essn
+JOIN PROJECT P ON W.Pno = P.Pnumber
+WHERE P.Pname = 'ProductX';
