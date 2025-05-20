@@ -1,0 +1,92 @@
+-- Create database and use it
+CREATE DATABASE IF NOT EXISTS bankDB4;
+USE bankDB4;
+
+-- Drop tables if exist to avoid conflicts
+DROP TABLE IF EXISTS Borrow;
+DROP TABLE IF EXISTS Deposit;
+DROP TABLE IF EXISTS Customers;
+DROP TABLE IF EXISTS Branch;
+
+-- Create Branch table
+CREATE TABLE Branch (
+    bname VARCHAR(50) PRIMARY KEY,
+    city VARCHAR(50) NOT NULL
+);
+
+-- Create Customers table
+CREATE TABLE Customers (
+    cname VARCHAR(100) PRIMARY KEY,
+    city VARCHAR(50) NOT NULL
+);
+
+-- Create Deposit table
+CREATE TABLE Deposit (
+    actno INT PRIMARY KEY,
+    cname VARCHAR(100),
+    bname VARCHAR(50),
+    amount DECIMAL(12,2) NOT NULL CHECK (amount >= 0),
+    adate DATE NOT NULL,
+    FOREIGN KEY (cname) REFERENCES Customers(cname),
+    FOREIGN KEY (bname) REFERENCES Branch(bname)
+);
+
+-- Create Borrow table
+CREATE TABLE Borrow (
+    loanno INT PRIMARY KEY,
+    cname VARCHAR(100),
+    bname VARCHAR(50),
+    amount DECIMAL(12,2) NOT NULL CHECK (amount >= 0),
+    FOREIGN KEY (cname) REFERENCES Customers(cname),
+    FOREIGN KEY (bname) REFERENCES Branch(bname)
+);
+
+-- Insert sample data into Branch
+INSERT INTO Branch VALUES
+('B1', 'Nagpur'),
+('B2', 'Mumbai'),
+('B3', 'Pune');
+
+-- Insert sample data into Customers
+INSERT INTO Customers VALUES
+('John', 'Bombay'),
+('Alice', 'Nagpur'),
+('Bob', 'Nagpur'),
+('Eve', 'Mumbai'),
+('Charlie', 'Nagpur');
+
+-- Insert sample data into Deposit
+INSERT INTO Deposit VALUES
+(101, 'John', 'B1', 5000, '2024-05-01'),
+(102, 'Alice', 'B1', 7000, '2024-05-02'),
+(103, 'Bob', 'B2', 6000, '2024-05-03'),
+(104, 'Eve', 'B2', 8000, '2024-05-04'),
+(105, 'Charlie', 'B3', 9000, '2024-05-05');
+
+-- Insert sample data into Borrow
+INSERT INTO Borrow VALUES
+(201, 'Alice', 'B1', 15000),
+(202, 'Bob', 'B3', 20000),
+(203, 'Charlie', 'B3', 18000),
+(204, 'John', 'B2', 12000);
+
+-- 1. Display customer name having living city Bombay and branch city Nagpur
+SELECT DISTINCT c.cname
+FROM Customers c
+JOIN Deposit d ON c.cname = d.cname
+JOIN Branch b ON d.bname = b.bname
+WHERE c.city = 'Bombay' AND b.city = 'Nagpur';
+
+-- 2. Display customer name having same living city as their branch city
+SELECT DISTINCT c.cname
+FROM Customers c
+JOIN Deposit d ON c.cname = d.cname
+JOIN Branch b ON d.bname = b.bname
+WHERE c.city = b.city;
+
+-- 3. Display customer name who are borrowers as well as depositors and having living city Nagpur
+SELECT DISTINCT c.cname
+FROM Customers c
+JOIN Deposit d ON c.cname = d.cname
+JOIN Borrow br ON c.cname = br.cname
+WHERE c.city = 'Nagpur';
