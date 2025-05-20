@@ -1,0 +1,81 @@
+-- Create database and use it
+CREATE DATABASE IF NOT EXISTS employeeDB;
+USE employeeDB;
+
+-- Drop the table if exists
+DROP TABLE IF EXISTS Employee_salary;
+
+-- Create table with columns and constraints
+CREATE TABLE Employee_salary (
+    emp_no INT PRIMARY KEY,
+    emp_name VARCHAR(100) NOT NULL,
+    basic DECIMAL(10,2) NOT NULL,
+    HRA DECIMAL(10,2) NOT NULL,
+    DA DECIMAL(10,2) NOT NULL,
+    Total_deduction DECIMAL(10,2) NOT NULL,
+    net_salary DECIMAL(10,2) NOT NULL,
+    gross_salary DECIMAL(10,2) NOT NULL
+);
+
+-- Insert sample data
+INSERT INTO Employee_salary VALUES
+(101, 'Alice', 30000, 5000, 4000, 4000, 35000, 39000),
+(102, 'Bob', 40000, 7000, 5000, 6000, 46000, 52000),
+(103, 'Charlie', 25000, 4000, 3500, 3000, 29500, 32500);
+
+-- Drop procedure if it exists
+DROP PROCEDURE IF EXISTS CalculateTax;
+
+DELIMITER $$
+
+CREATE PROCEDURE CalculateTax()
+BEGIN
+    DECLARE done INT DEFAULT FALSE;
+    DECLARE e_no INT;
+    DECLARE e_name VARCHAR(100);
+    DECLARE net_sal DECIMAL(10,2);
+    DECLARE tax_amt DECIMAL(10,2);
+
+    -- Cursor to iterate over employees
+    DECLARE emp_cursor CURSOR FOR SELECT emp_no, emp_name, net_salary FROM Employee_salary;
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+
+    -- Temporary table to store results
+    DROP TEMPORARY TABLE IF EXISTS EmpTax;
+    CREATE TEMPORARY TABLE EmpTax (
+        emp_no INT,
+        emp_name VARCHAR(100),
+        tax DECIMAL(10,2)
+    );
+
+    OPEN emp_cursor;
+
+    read_loop: LOOP
+        FETCH emp_cursor INTO e_no, e_name, net_sal;
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+
+        -- Tax slabs
+        IF net_sal <= 30000 THEN
+            SET tax_amt = net_sal * 0.05;
+        ELSEIF net_sal <= 50000 THEN
+            SET tax_amt = net_sal * 0.10;
+        ELSE
+            SET tax_amt = net_sal * 0.15;
+        END IF;
+
+        -- Insert calculated tax
+        INSERT INTO EmpTax VALUES (e_no, e_name, tax_amt);
+    END LOOP;
+
+    CLOSE emp_cursor;
+
+    -- Display output
+    SELECT emp_no, emp_name, tax FROM EmpTax;
+END $$
+
+DELIMITER ;
+
+-- Call the procedure to see results
+CALL CalculateTax();
