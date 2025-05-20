@@ -1,0 +1,63 @@
+-- Create Database
+CREATE DATABASE IF NOT EXISTS CityDB;
+USE CityDB;
+
+-- Drop table if exists
+DROP TABLE IF EXISTS Citydetails;
+
+-- Create table with flattened nested fields
+CREATE TABLE Citydetails (
+    _id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    area FLOAT NOT NULL,
+    population_total INT NOT NULL,
+    population_adults INT NOT NULL,
+    population_seniorcitizens INT NOT NULL,
+    population_sexratio FLOAT NOT NULL,
+    geography_avgtemp FLOAT NOT NULL,
+    geography_avgrainfall FLOAT NOT NULL,
+    geography_longitude FLOAT NOT NULL,
+    geography_latitude FLOAT NOT NULL
+);
+
+-- Insert sample data
+INSERT INTO Citydetails
+(name, area, population_total, population_adults, population_seniorcitizens, population_sexratio, geography_avgtemp, geography_avgrainfall, geography_longitude, geography_latitude)
+VALUES
+('Pune', 331.26, 6500000, 5000000, 1000000, 940, 24.5, 700, 73.8567, 18.5204),
+('Mumbai', 603.4, 20411000, 15000000, 3000000, 922, 27.2, 2400, 72.8777, 19.0760),
+('Delhi', 1484, 16787941, 12000000, 2000000, 868, 25.0, 650, 77.1025, 28.7041),
+('Nagpur', 227.4, 2400000, 1800000, 400000, 950, 26.5, 1200, 79.0882, 21.1458),
+('Bangalore', 709, 8443675, 6000000, 1200000, 945, 22.4, 900, 77.5946, 12.9716);
+
+-- 1. Find the total population in Pune
+SELECT population_total AS Total_Population_Pune
+FROM Citydetails
+WHERE name = 'Pune';
+
+-- 2. Return all cities with total population greater than 10 million
+SELECT name, population_total
+FROM Citydetails
+WHERE population_total > 10000000;
+
+-- 3. Return the average population values for each city
+-- Since population is a single value per city, average per city = population_total
+-- But if you want average across population types (adults, seniorcitizens), let's average them:
+
+SELECT 
+    name,
+    population_total,
+    (population_adults + population_seniorcitizens) / 2 AS Avg_Population_Adults_Seniors
+FROM Citydetails;
+
+-- 4. Return minimum and maximum populations among cities
+SELECT 
+    MIN(population_total) AS Min_Population,
+    MAX(population_total) AS Max_Population
+FROM Citydetails;
+
+-- Additionally, if you want city names for min and max population:
+SELECT name, population_total
+FROM Citydetails
+WHERE population_total = (SELECT MIN(population_total) FROM Citydetails)
+   OR population_total = (SELECT MAX(population_total) FROM Citydetails);
