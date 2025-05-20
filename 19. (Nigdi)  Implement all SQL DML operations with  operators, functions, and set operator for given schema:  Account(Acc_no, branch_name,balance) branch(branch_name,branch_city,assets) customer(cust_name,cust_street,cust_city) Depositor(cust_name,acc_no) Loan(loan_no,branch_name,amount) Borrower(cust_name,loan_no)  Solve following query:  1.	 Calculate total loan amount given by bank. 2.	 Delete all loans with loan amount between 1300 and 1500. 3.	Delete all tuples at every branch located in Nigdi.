@@ -1,0 +1,126 @@
+-- Use the existing database or create it if needed
+CREATE DATABASE IF NOT EXISTS bankDB;
+USE bankDB;
+
+-- Drop tables if they exist for clean setup
+DROP TABLE IF EXISTS Borrower;
+DROP TABLE IF EXISTS Loan;
+DROP TABLE IF EXISTS Depositor;
+DROP TABLE IF EXISTS Customer;
+DROP TABLE IF EXISTS Account;
+DROP TABLE IF EXISTS Branch;
+
+-- Create tables with constraints
+
+CREATE TABLE Branch (
+    branch_name VARCHAR(50) PRIMARY KEY,
+    branch_city VARCHAR(50) NOT NULL,
+    assets DECIMAL(15,2) CHECK (assets >= 0)
+);
+
+CREATE TABLE Account (
+    acc_no INT PRIMARY KEY,
+    branch_name VARCHAR(50) NOT NULL,
+    balance DECIMAL(12,2) NOT NULL CHECK (balance >= 0),
+    FOREIGN KEY (branch_name) REFERENCES Branch(branch_name)
+);
+
+CREATE TABLE Customer (
+    cust_name VARCHAR(100) PRIMARY KEY,
+    cust_street VARCHAR(100),
+    cust_city VARCHAR(50)
+);
+
+CREATE TABLE Depositor (
+    cust_name VARCHAR(100),
+    acc_no INT,
+    PRIMARY KEY (cust_name, acc_no),
+    FOREIGN KEY (cust_name) REFERENCES Customer(cust_name),
+    FOREIGN KEY (acc_no) REFERENCES Account(acc_no)
+);
+
+CREATE TABLE Loan (
+    loan_no INT PRIMARY KEY,
+    branch_name VARCHAR(50) NOT NULL,
+    amount DECIMAL(12,2) NOT NULL CHECK (amount >= 0),
+    FOREIGN KEY (branch_name) REFERENCES Branch(branch_name)
+);
+
+CREATE TABLE Borrower (
+    cust_name VARCHAR(100),
+    loan_no INT,
+    PRIMARY KEY (cust_name, loan_no),
+    FOREIGN KEY (cust_name) REFERENCES Customer(cust_name),
+    FOREIGN KEY (loan_no) REFERENCES Loan(loan_no)
+);
+
+-- Insert sample data
+
+INSERT INTO Branch VALUES
+('Akurdi', 'Pune', 50000000),
+('Deccan', 'Pune', 35000000),
+('Nigdi', 'Pune', 10000000);
+
+INSERT INTO Account VALUES
+(101, 'Akurdi', 15000),
+(102, 'Akurdi', 10000),
+(103, 'Deccan', 8000),
+(104, 'Nigdi', 5000);
+
+INSERT INTO Customer VALUES
+('Alice', 'Street 1', 'Pune'),
+('Bob', 'Street 2', 'Mumbai'),
+('Charlie', 'Street 3', 'Pune'),
+('David', 'Street 4', 'Pune');
+
+INSERT INTO Depositor VALUES
+('Alice', 101),
+('Bob', 102),
+('Charlie', 103),
+('David', 104);
+
+INSERT INTO Loan VALUES
+(201, 'Akurdi', 25000),
+(202, 'Deccan', 1800),
+(203, 'Nigdi', 1400),
+(204, 'Nigdi', 1200);
+
+INSERT INTO Borrower VALUES
+('Alice', 201),
+('David', 202),
+('Bob', 203),
+('Charlie', 204);
+
+-- 1. Calculate total loan amount given by bank
+SELECT SUM(amount) AS Total_Loan_Amount FROM Loan;
+
+-- 2. Delete all loans with loan amount between 1300 and 1500
+DELETE FROM Loan WHERE amount BETWEEN 1300 AND 1500;
+
+-- Show loans after deletion
+SELECT * FROM Loan;
+
+-- 3. Delete all tuples at every branch located in Nigdi
+
+-- First delete dependent tuples in Loan and Account for branch Nigdi
+
+DELETE FROM Borrower WHERE loan_no IN (SELECT loan_no FROM Loan WHERE branch_name = 'Nigdi');
+
+DELETE FROM Loan WHERE branch_name = 'Nigdi';
+
+DELETE FROM Depositor WHERE acc_no IN (SELECT acc_no FROM Account WHERE branch_name = 'Nigdi');
+
+DELETE FROM Account WHERE branch_name = 'Nigdi';
+
+-- Finally delete branch itself
+
+DELETE FROM Branch WHERE branch_city = 'Pune' AND branch_name = 'Nigdi';
+
+-- Show remaining Branches
+SELECT * FROM Branch;
+
+-- Show remaining Accounts
+SELECT * FROM Account;
+
+-- Show remaining Loans
+SELECT * FROM Loan;
