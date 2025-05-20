@@ -1,0 +1,91 @@
+-- Step 0: Create database and use it
+DROP DATABASE IF EXISTS CompanyDB;
+CREATE DATABASE CompanyDB;
+USE CompanyDB;
+
+-- Step 1: Create tables with all constraints
+
+CREATE TABLE Department (
+    DeptId INT PRIMARY KEY AUTO_INCREMENT,
+    DeptName VARCHAR(100) NOT NULL,
+    Location VARCHAR(100)
+);
+
+CREATE TABLE Employee (
+    EmployeeId INT PRIMARY KEY AUTO_INCREMENT,
+    EmpName VARCHAR(100) NOT NULL,
+    Email VARCHAR(100) UNIQUE,
+    Phone VARCHAR(15),
+    Salary DECIMAL(10,2),
+    DeptId INT,
+    FOREIGN KEY (DeptId) REFERENCES Department(DeptId)
+);
+
+CREATE TABLE Project (
+    ProjectId INT PRIMARY KEY AUTO_INCREMENT,
+    ProjectName VARCHAR(100),
+    Budget DECIMAL(12,2),
+    DeptId INT,
+    FOREIGN KEY (DeptId) REFERENCES Department(DeptId)
+);
+
+CREATE TABLE WorksOn (
+    EmployeeId INT,
+    ProjectId INT,
+    HoursWorked INT,
+    PRIMARY KEY (EmployeeId, ProjectId),
+    FOREIGN KEY (EmployeeId) REFERENCES Employee(EmployeeId),
+    FOREIGN KEY (ProjectId) REFERENCES Project(ProjectId)
+);
+
+-- Step 2: Create views using JOIN and conditions
+
+-- View 1: Employee with Department Info
+CREATE VIEW EmployeeDeptView AS
+SELECT e.EmployeeId, e.EmpName, e.Salary, d.DeptName
+FROM Employee e
+JOIN Department d ON e.DeptId = d.DeptId
+WHERE e.Salary > 50000;
+
+-- View 2: Employee Project Hours View
+CREATE VIEW EmpProjectView AS
+SELECT e.EmployeeId, e.EmpName, p.ProjectName, w.HoursWorked
+FROM Employee e
+JOIN WorksOn w ON e.EmployeeId = w.EmployeeId
+JOIN Project p ON p.ProjectId = w.ProjectId
+WHERE w.HoursWorked > 10;
+
+-- Step 3: Create index called EmployeeId for Department table
+-- Sorted by DeptId (ASC) and EmployeeId (ASC within Dept)
+-- Since Department table doesn’t contain EmployeeId, we simulate this using a view or add a mapping table.
+-- But based on instruction, assuming this is for employee table ordered by dept and employee id.
+
+CREATE INDEX idx_dept_emp ON Employee(DeptId ASC, EmployeeId ASC);
+
+-- Step 4: Create sequence on EmployeeId (simulated with AUTO_INCREMENT)
+
+-- Already implemented in Employee table.
+-- Alternatively, we simulate sequence using helper table.
+
+CREATE TABLE EmpSeq (
+    id INT AUTO_INCREMENT PRIMARY KEY
+);
+
+-- Insert to simulate sequence increments
+INSERT INTO EmpSeq VALUES (NULL); -- id = 1
+INSERT INTO EmpSeq VALUES (NULL); -- id = 2
+
+-- Step 5: Show all outputs
+
+-- Show all tables
+SHOW TABLES;
+
+-- Sample select from views
+SELECT * FROM EmployeeDeptView;
+SELECT * FROM EmpProjectView;
+
+-- Show indexes
+SHOW INDEXES FROM Employee;
+
+-- Show simulated sequence values
+SELECT * FROM EmpSeq;
