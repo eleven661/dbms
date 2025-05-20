@@ -1,0 +1,43 @@
+// Step 0: Switch or create a database
+use siteAnalyticsDB;
+
+// Step 1: Drop the collection if it already exists
+db.sites.drop();
+
+// Step 2: Create and insert sample documents into `sites` collection
+db.sites.insertMany([
+  { url: "https://example.com", dateofaccess: new Date("2024-01-10") },
+  { url: "https://example.com", dateofaccess: new Date("2024-01-20") },
+  { url: "https://example.com", dateofaccess: new Date("2024-02-05") },
+  { url: "https://another.com", dateofaccess: new Date("2024-01-12") },
+  { url: "https://another.com", dateofaccess: new Date("2024-02-18") },
+  { url: "https://another.com", dateofaccess: new Date("2024-02-25") },
+  { url: "https://another.com", dateofaccess: new Date("2024-02-28") },
+  { url: "https://example.com", dateofaccess: new Date("2024-02-28") },
+  { url: "https://thirdsite.com", dateofaccess: new Date("2024-01-05") }
+]);
+
+// Step 3: Define the Map function
+var mapFunction = function() {
+  var month = this.dateofaccess.getMonth() + 1; // Jan is 0
+  var year = this.dateofaccess.getFullYear();
+  emit(this.url + " - " + year + "-" + (month < 10 ? "0" + month : month), 1);
+};
+
+// Step 4: Define the Reduce function
+var reduceFunction = function(key, values) {
+  return Array.sum(values);
+};
+
+// Step 5: Run MapReduce
+db.sites.mapReduce(
+  mapFunction,
+  reduceFunction,
+  {
+    out: "site_access_summary"
+  }
+);
+
+// Step 6: Show the results
+print("== Site Access Summary ==");
+db.site_access_summary.find().forEach(printjson);
