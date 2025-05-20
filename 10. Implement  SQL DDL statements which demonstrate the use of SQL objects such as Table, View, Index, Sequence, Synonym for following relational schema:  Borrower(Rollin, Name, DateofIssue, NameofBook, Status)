@@ -1,0 +1,68 @@
+-- Drop if exists (for clean setup)
+DROP TABLE IF EXISTS Borrower;
+DROP VIEW IF EXISTS Borrower_View;
+DROP INDEX IF EXISTS Borrower_Name_Index ON Borrower;
+-- Note: MySQL doesn't support sequences or synonyms natively, but will simulate.
+
+-- 1. Create Borrower table
+CREATE TABLE Borrower (
+    Rollin INT PRIMARY KEY,
+    Name VARCHAR(100) NOT NULL,
+    DateofIssue DATE,
+    NameofBook VARCHAR(100),
+    Status CHAR(1)  -- I = Issued, R = Returned
+);
+
+-- 2. Insert sample data
+INSERT INTO Borrower VALUES
+(1, 'Rahul Sharma', '2025-04-01', 'Database Systems', 'I'),
+(2, 'Anita Rao', '2025-04-05', 'Operating Systems', 'I'),
+(3, 'Suresh Patel', '2025-03-20', 'Computer Networks', 'R');
+
+-- 3. Create View on Borrower (show all currently issued books)
+CREATE VIEW Borrower_View AS
+SELECT Rollin, Name, NameofBook, DateofIssue
+FROM Borrower
+WHERE Status = 'I';
+
+-- 4. Create Index on Name column (for faster search by Name)
+CREATE INDEX Borrower_Name_Index ON Borrower(Name ASC);
+
+-- 5. Create Sequence simulation (MySQL doesn't support sequences; emulate with AUTO_INCREMENT table)
+
+-- Create a helper table to simulate sequence for Rollin
+DROP TABLE IF EXISTS Rollin_Seq;
+CREATE TABLE Rollin_Seq (
+    seq INT NOT NULL AUTO_INCREMENT,
+    PRIMARY KEY(seq)
+);
+
+-- Function to get next sequence value (simulate)
+DELIMITER //
+CREATE FUNCTION get_next_rollin() RETURNS INT
+DETERMINISTIC
+BEGIN
+    INSERT INTO Rollin_Seq VALUES (NULL);
+    RETURN LAST_INSERT_ID();
+END //
+DELIMITER ;
+
+-- 6. Synonym simulation: MySQL doesn't support synonyms directly
+-- Use a VIEW as a synonym-like object for Borrower table (named Borrower_Syn)
+CREATE VIEW Borrower_Syn AS SELECT * FROM Borrower;
+
+-- Show all Borrowers
+SELECT * FROM Borrower;
+
+-- Show all currently issued books using view
+SELECT * FROM Borrower_View;
+
+-- Use the index by searching for a name (this will use the index automatically)
+EXPLAIN SELECT * FROM Borrower WHERE Name = 'Rahul Sharma';
+
+-- Get next Rollin using sequence function simulation
+SELECT get_next_rollin() AS Next_Rollin;
+SELECT get_next_rollin() AS Next_Rollin;
+
+-- Use synonym (view) to select all from Borrower_Syn
+SELECT * FROM Borrower_Syn;
