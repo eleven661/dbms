@@ -1,0 +1,91 @@
+DROP TABLE IF EXISTS Borrow;
+DROP TABLE IF EXISTS Member;
+DROP TABLE IF EXISTS Book;
+DROP TABLE IF EXISTS Author;
+DROP TABLE IF EXISTS Publisher;
+
+-- 1. Create tables with constraints
+
+CREATE TABLE Author (
+  AuthorID INT AUTO_INCREMENT PRIMARY KEY,
+  Name VARCHAR(100) NOT NULL,
+  Email VARCHAR(100) UNIQUE
+);
+
+CREATE TABLE Publisher (
+  PublisherID INT AUTO_INCREMENT PRIMARY KEY,
+  Name VARCHAR(100) NOT NULL,
+  Address VARCHAR(200)
+);
+
+CREATE TABLE Book (
+  BookID INT PRIMARY KEY AUTO_INCREMENT, -- simulating sequence here
+  Title VARCHAR(200) NOT NULL,
+  AuthorID INT NOT NULL,
+  PublisherID INT NOT NULL,
+  Year YEAR,
+  CONSTRAINT fk_Book_Author FOREIGN KEY (AuthorID) REFERENCES Author(AuthorID) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_Book_Publisher FOREIGN KEY (PublisherID) REFERENCES Publisher(PublisherID) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE Member (
+  MemberID INT AUTO_INCREMENT PRIMARY KEY,
+  Name VARCHAR(100) NOT NULL,
+  Phone VARCHAR(20)
+);
+
+CREATE TABLE Borrow (
+  BorrowID INT AUTO_INCREMENT PRIMARY KEY,
+  MemberID INT NOT NULL,
+  BookID INT NOT NULL,
+  BorrowDate DATE NOT NULL,
+  ReturnDate DATE,
+  CONSTRAINT fk_Borrow_Member FOREIGN KEY (MemberID) REFERENCES Member(MemberID) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_Borrow_Book FOREIGN KEY (BookID) REFERENCES Book(BookID) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- 2. Create views on any two tables using join
+
+CREATE OR REPLACE VIEW View_BookAuthor AS
+SELECT b.BookID, b.Title, a.Name AS AuthorName, b.Year
+FROM Book b
+JOIN Author a ON b.AuthorID = a.AuthorID;
+
+CREATE OR REPLACE VIEW View_BorrowDetails AS
+SELECT br.BorrowID, m.Name AS MemberName, b.Title AS BookTitle, br.BorrowDate, br.ReturnDate
+FROM Borrow br
+JOIN Member m ON br.MemberID = m.MemberID
+JOIN Book b ON br.BookID = b.BookID;
+
+-- 3. Create index on Author name in ascending order
+CREATE INDEX Lib_Index1 ON Author(Name ASC);
+
+-- 4. Sequence on BookID - simulated by AUTO_INCREMENT in Book table
+
+-- Insert some sample data for testing
+
+INSERT INTO Author (Name, Email) VALUES
+('J.K. Rowling', 'jkrowling@example.com'),
+('George Orwell', 'gorwell@example.com');
+
+INSERT INTO Publisher (Name, Address) VALUES
+('Bloomsbury', 'London, UK'),
+('Secker & Warburg', 'London, UK');
+
+INSERT INTO Book (Title, AuthorID, PublisherID, Year) VALUES
+('Harry Potter and the Philosopher\'s Stone', 1, 1, 1997),
+('1984', 2, 2, 1949);
+
+INSERT INTO Member (Name, Phone) VALUES
+('Alice', '1234567890'),
+('Bob', '0987654321');
+
+INSERT INTO Borrow (MemberID, BookID, BorrowDate, ReturnDate) VALUES
+(1, 1, '2025-05-01', NULL),
+(2, 2, '2025-05-03', '2025-05-15');
+
+-- Test queries
+
+-- Check views
+SELECT * FROM View_BookAuthor;
+SELECT * FROM View_BorrowDetails;
