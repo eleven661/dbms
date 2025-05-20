@@ -1,0 +1,52 @@
+-- Create Database
+CREATE DATABASE IF NOT EXISTS CityDB;
+USE CityDB;
+
+-- Drop table if exists
+DROP TABLE IF EXISTS Citydetails;
+
+-- Create table with flattened fields
+CREATE TABLE Citydetails (
+    _id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    area FLOAT NOT NULL,
+    population_total INT NOT NULL,
+    population_adults INT NOT NULL,
+    population_seniorcitizens INT NOT NULL,
+    population_sexratio FLOAT NOT NULL,
+    geography_avgtemp FLOAT NOT NULL,
+    geography_avgrainfall FLOAT NOT NULL,
+    geography_longitude FLOAT NOT NULL,
+    geography_latitude FLOAT NOT NULL
+);
+
+-- Insert sample data
+INSERT INTO Citydetails
+(name, area, population_total, population_adults, population_seniorcitizens, population_sexratio, geography_avgtemp, geography_avgrainfall, geography_longitude, geography_latitude)
+VALUES
+('Pune', 331.26, 6500000, 5000000, 1000000, 940, 24.5, 700, 73.8567, 18.5204),
+('Mumbai', 603.4, 20411000, 15000000, 3000000, 922, 27.2, 2400, 72.8777, 19.0760),
+('Delhi', 1484, 16787941, 12000000, 2000000, 868, 25.0, 650, 77.1025, 28.7041),
+('Nagpur', 227.4, 2400000, 1800000, 400000, 950, 26.5, 1200, 79.0882, 21.1458),
+('Bangalore', 709, 8443675, 6000000, 1200000, 945, 22.4, 900, 77.5946, 12.9716);
+
+-- 1. Find area-wise total population and sort them in increasing order of area
+SELECT area, population_total
+FROM Citydetails
+ORDER BY area ASC;
+
+-- 2. Retrieve name and area where average rainfall is greater than 60
+SELECT name, area
+FROM Citydetails
+WHERE geography_avgrainfall > 60;
+
+-- 3. Create index on name and area columns
+CREATE INDEX idx_name_area ON Citydetails(name, area);
+
+-- Find the max population in Mumbai
+SELECT MAX(population_total) AS max_population_in_mumbai
+FROM Citydetails
+WHERE name = 'Mumbai';
+
+-- 4. Create index on name only
+CREATE INDEX idx_name ON Citydetails(name);
