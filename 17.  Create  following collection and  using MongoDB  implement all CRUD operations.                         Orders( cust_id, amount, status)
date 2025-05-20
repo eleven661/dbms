@@ -1,0 +1,62 @@
+db.Orders.drop()
+
+// 1. Insert multiple orders
+const insertResult = db.Orders.insertMany([
+  { cust_id: 101, amount: 5000, status: "Confirmed" },
+  { cust_id: 102, amount: 3200, status: "Pending" },
+  { cust_id: 103, amount: 7000, status: "Delivered" },
+  { cust_id: 104, amount: 2500, status: "Cancelled" }
+])
+print("Insert Result:")
+printjson(insertResult)
+
+// 2. Display all orders after insertion
+print("\nAll Orders after insertion:")
+const allOrders1 = db.Orders.find().toArray()
+printjson(allOrders1)
+
+// 3. Find orders with amount > 3000
+print("\nOrders with amount > 3000:")
+const ordersGt3000 = db.Orders.find({ amount: { $gt: 3000 } }).toArray()
+printjson(ordersGt3000)
+
+// 4. Find orders with status 'Delivered'
+print("\nDelivered Orders:")
+const deliveredOrders = db.Orders.find({ status: "Delivered" }).toArray()
+printjson(deliveredOrders)
+
+// 5. Update amount to 4000 for cust_id 102
+const updateOneResult = db.Orders.updateOne(
+  { cust_id: 102 },
+  { $set: { amount: 4000 } }
+)
+print("\nUpdateOne Result (cust_id=102):")
+printjson(updateOneResult)
+
+// 6. Update all orders with status "Confirmed" to "Shipped"
+const updateManyResult = db.Orders.updateMany(
+  { status: "Confirmed" },
+  { $set: { status: "Shipped" } }
+)
+print("\nUpdateMany Result (status 'Confirmed' → 'Shipped'):")
+printjson(updateManyResult)
+
+// 7. Display all orders after updates
+print("\nAll Orders after updates:")
+const allOrders2 = db.Orders.find().toArray()
+printjson(allOrders2)
+
+// 8. Delete order with cust_id 104
+const deleteOneResult = db.Orders.deleteOne({ cust_id: 104 })
+print("\nDeleteOne Result (cust_id=104):")
+printjson(deleteOneResult)
+
+// 9. Delete all orders with amount less than 3000
+const deleteManyResult = db.Orders.deleteMany({ amount: { $lt: 3000 } })
+print("\nDeleteMany Result (amount < 3000):")
+printjson(deleteManyResult)
+
+// 10. Display all orders after deletions
+print("\nAll Orders after deletions:")
+const allOrders3 = db.Orders.find().toArray()
+printjson(allOrders3)
