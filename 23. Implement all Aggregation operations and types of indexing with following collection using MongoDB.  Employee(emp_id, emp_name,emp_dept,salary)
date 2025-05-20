@@ -1,0 +1,89 @@
+db.Employee.drop();
+
+// Insert sample documents into Employee collection
+db.Employee.insertMany([
+  { emp_id: 1, emp_name: "Alice", emp_dept: "HR", salary: 50000 },
+  { emp_id: 2, emp_name: "Bob", emp_dept: "IT", salary: 70000 },
+  { emp_id: 3, emp_name: "Charlie", emp_dept: "Finance", salary: 60000 },
+  { emp_id: 4, emp_name: "David", emp_dept: "IT", salary: 80000 },
+  { emp_id: 5, emp_name: "Eve", emp_dept: "HR", salary: 55000 },
+  { emp_id: 6, emp_name: "Frank", emp_dept: "Finance", salary: 62000 },
+  { emp_id: 7, emp_name: "Grace", emp_dept: "IT", salary: 90000 },
+  { emp_id: 8, emp_name: "Heidi", emp_dept: "HR", salary: 52000 }
+]);
+
+// -------- AGGREGATION OPERATIONS --------
+print("\n--- GROUP BY emp_dept AND CALCULATE AVERAGE SALARY ---");
+db.Employee.aggregate([
+  {
+    $group: {
+      _id: "$emp_dept",
+      avgSalary: { $avg: "$salary" }
+    }
+  }
+]).forEach(doc => printjson(doc));
+
+print("\n--- FILTER (MATCH) Employees with salary > 60000 ---");
+db.Employee.aggregate([
+  {
+    $match: {
+      salary: { $gt: 60000 }
+    }
+  }
+]).forEach(doc => printjson(doc));
+
+print("\n--- SORT Employees by salary DESCENDING ---");
+db.Employee.aggregate([
+  {
+    $sort: { salary: -1 }
+  }
+]).forEach(doc => printjson(doc));
+
+print("\n--- PROJECT only emp_name and emp_dept fields ---");
+db.Employee.aggregate([
+  {
+    $project: {
+      _id: 0,
+      emp_name: 1,
+      emp_dept: 1
+    }
+  }
+]).forEach(doc => printjson(doc));
+
+print("\n--- COUNT number of employees in each department ---");
+db.Employee.aggregate([
+  {
+    $group: {
+      _id: "$emp_dept",
+      count: { $sum: 1 }
+    }
+  }
+]).forEach(doc => printjson(doc));
+
+// -------- INDEXING TYPES --------
+
+// 1. Single Field Index
+print("\n--- Creating SINGLE FIELD Index on emp_name ---");
+db.Employee.createIndex({ emp_name: 1 });
+printjson(db.Employee.getIndexes());
+
+// 2. Compound Index
+print("\n--- Creating COMPOUND Index on emp_dept and salary ---");
+db.Employee.createIndex({ emp_dept: 1, salary: -1 });
+printjson(db.Employee.getIndexes());
+
+// 3. Multikey Index (for array fields)
+print("\n--- Adding skills array and creating MULTIKEY Index ---");
+db.Employee.updateMany({}, { $set: { skills: ["teamwork", "communication"] } });
+db.Employee.createIndex({ skills: 1 });
+printjson(db.Employee.getIndexes());
+
+// 4. Text Index
+print("\n--- Creating TEXT Index on emp_name ---");
+db.Employee.createIndex({ emp_name: "text" });
+printjson(db.Employee.getIndexes());
+
+// 5. Hashed Index (used for sharding and fast equality)
+print("\n--- Creating HASHED Index on emp_id ---");
+db.Employee.createIndex({ emp_id: "hashed" });
+printjson(db.Employee.getIndexes());
