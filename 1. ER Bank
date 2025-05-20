@@ -1,0 +1,88 @@
+CREATE TABLE Customer (
+    CustomerId INT PRIMARY KEY AUTO_INCREMENT,
+    CustomerName VARCHAR(100) NOT NULL,
+    Email VARCHAR(100) UNIQUE,
+    Phone VARCHAR(15),
+    Address VARCHAR(255)
+);
+
+CREATE TABLE Branch (
+    BranchId INT PRIMARY KEY AUTO_INCREMENT,
+    BranchName VARCHAR(100) NOT NULL,
+    Location VARCHAR(100)
+);
+
+CREATE TABLE Account (
+    AcctNo INT PRIMARY KEY AUTO_INCREMENT,
+    CustomerId INT,
+    BranchId INT,
+    Balance DECIMAL(15, 2),
+    AcctType VARCHAR(50),
+    FOREIGN KEY (CustomerId) REFERENCES Customer(CustomerId),
+    FOREIGN KEY (BranchId) REFERENCES Branch(BranchId)
+);
+
+CREATE TABLE Loan (
+    LoanId INT PRIMARY KEY AUTO_INCREMENT,
+    CustomerId INT,
+    BranchId INT,
+    Amount DECIMAL(15, 2),
+    LoanType VARCHAR(50),
+    FOREIGN KEY (CustomerId) REFERENCES Customer(CustomerId),
+    FOREIGN KEY (BranchId) REFERENCES Branch(BranchId)
+);
+
+CREATE TABLE Transaction (
+    TransId INT PRIMARY KEY AUTO_INCREMENT,
+    AcctNo INT,
+    TransDate DATE,
+    Amount DECIMAL(15,2),
+    TransType VARCHAR(50),
+    FOREIGN KEY (AcctNo) REFERENCES Account(AcctNo)
+);
+
+-- Step 2: Create Views using JOIN
+
+-- View 1: Customer Account Info
+CREATE VIEW CustomerAccountView AS
+SELECT c.CustomerId, c.CustomerName, a.AcctNo, a.Balance, a.AcctType
+FROM Customer c
+JOIN Account a ON c.CustomerId = a.CustomerId;
+
+-- View 2: Customer Loan Info
+CREATE VIEW CustomerLoanView AS
+SELECT c.CustomerId, c.CustomerName, l.LoanId, l.Amount, l.LoanType
+FROM Customer c
+JOIN Loan l ON c.CustomerId = l.CustomerId;
+
+-- Step 3: Create Index on CustomerId by CustomerName ascending
+-- (In MySQL, index entries are always ordered by the indexed column(s))
+CREATE INDEX idx_customer_name ON Customer(CustomerName ASC);
+
+-- Step 4: Create Sequence on AcctNo
+-- MySQL does not support sequences like Oracle, so we use AUTO_INCREMENT
+-- Already done in Account table's AcctNo field.
+
+-- But we can simulate a sequence using a helper table
+CREATE TABLE AcctSeq (
+    id INT AUTO_INCREMENT PRIMARY KEY
+);
+
+-- Insert to simulate sequence increment
+INSERT INTO AcctSeq VALUES (NULL); -- id = 1
+INSERT INTO AcctSeq VALUES (NULL); -- id = 2
+
+-- Show all tables
+SHOW TABLES;
+
+-- Step 5: Display sample outputs from views and index
+
+-- Sample SELECT from Views
+SELECT * FROM CustomerAccountView;
+SELECT * FROM CustomerLoanView;
+
+-- Show indexes of Customer table
+SHOW INDEXES FROM Customer;
+
+-- Display simulated sequence values
+SELECT * FROM AcctSeq;
