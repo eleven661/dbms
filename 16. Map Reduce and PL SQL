@@ -1,0 +1,112 @@
+//Map Reduce , mongosh 
+
+db.Students.drop()
+
+// Insert documents
+db.Students.insertMany([
+  { stud_id: 1, stud_name: "Alice", stud_addr: "Pune", stud_marks: 85 },
+  { stud_id: 2, stud_name: "Bob", stud_addr: "Mumbai", stud_marks: 92 },
+  { stud_id: 3, stud_name: "Charlie", stud_addr: "Pune", stud_marks: 76 },
+  { stud_id: 4, stud_name: "David", stud_addr: "Delhi", stud_marks: 88 },
+  { stud_id: 5, stud_name: "Eva", stud_addr: "Mumbai", stud_marks: 95 },
+  { stud_id: 6, stud_name: "Frank", stud_addr: "Delhi", stud_marks: 65 }
+])
+
+// Map function
+var mapFunction = function () {
+  emit(this.stud_addr, { total: this.stud_marks, count: 1 });
+};
+
+// Reduce function
+var reduceFunction = function (key, values) {
+  var result = { total: 0, count: 0 };
+  values.forEach(function (val) {
+    result.total += val.total;
+    result.count += val.count;
+  });
+  return result;
+};
+
+// Finalize function to compute average
+var finalizeFunction = function (key, reducedValue) {
+  reducedValue.avg = reducedValue.total / reducedValue.count;
+  return reducedValue;
+};
+
+// Run MapReduce
+db.Students.mapReduce(
+  mapFunction,
+  reduceFunction,
+  {
+    out: "marks_summary",
+    finalize: finalizeFunction
+  }
+)
+
+// Display result
+db.marks_summary.find().pretty()
+
+
+
+//PL/SQL---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+DROP TABLE IF EXISTS student_marks;
+
+-- Create table
+CREATE TABLE student_marks (
+    roll_no INT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    sub1 INT CHECK(sub1 BETWEEN 0 AND 100),
+    sub2 INT CHECK(sub2 BETWEEN 0 AND 100),
+    sub3 INT CHECK(sub3 BETWEEN 0 AND 100),
+    sub4 INT CHECK(sub4 BETWEEN 0 AND 100)
+);
+
+-- Insert sample data
+INSERT INTO student_marks VALUES
+(1, 'Alice', 85, 90, 88, 92),
+(2, 'Bob', 70, 75, 80, 85),
+(3, 'Charlie', 60, 55, 65, 70);
+
+-- Create procedure to calculate total and percentage
+DELIMITER //
+
+CREATE PROCEDURE calculate_results()
+BEGIN
+  DECLARE done INT DEFAULT 0;
+  DECLARE rno INT;
+  DECLARE sname VARCHAR(50);
+  DECLARE m1 INT;
+  DECLARE m2 INT;
+  DECLARE m3 INT;
+  DECLARE m4 INT;
+  DECLARE total INT;
+  DECLARE percent DECIMAL(5,2);
+
+  DECLARE student_cursor CURSOR FOR SELECT roll_no, name, sub1, sub2, sub3, sub4 FROM student_marks;
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+
+  OPEN student_cursor;
+
+  read_loop: LOOP
+    FETCH student_cursor INTO rno, sname, m1, m2, m3, m4;
+    IF done THEN
+      LEAVE read_loop;
+    END IF;
+
+    SET total = m1 + m2 + m3 + m4;
+    SET percent = (total / 400.0) * 100;
+
+    SELECT CONCAT("Roll No: ", rno), 
+           CONCAT("Name: ", sname), 
+           CONCAT("Total: ", total), 
+           CONCAT("Percentage: ", percent, "%");
+  END LOOP;
+
+  CLOSE student_cursor;
+END //
+
+DELIMITER ;
+
+-- Call the procedure
+CALL calculate_results();
