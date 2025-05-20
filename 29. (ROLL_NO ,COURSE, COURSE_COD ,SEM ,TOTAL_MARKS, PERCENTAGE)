@@ -1,0 +1,53 @@
+-- Use a test database or create one
+CREATE DATABASE IF NOT EXISTS StudentDB;
+USE StudentDB;
+
+-- Drop table if exists
+DROP TABLE IF EXISTS Student;
+
+-- Create Student table
+CREATE TABLE Student (
+    ROLL_NO INT PRIMARY KEY,
+    COURSE VARCHAR(100),
+    COURSE_COD VARCHAR(10),
+    SEM INT,
+    TOTAL_MARKS INT,
+    PERCENTAGE DECIMAL(5,2)
+);
+
+-- Insert sample data
+INSERT INTO Student VALUES
+(1, 'Math', 'MTH101', 1, 450, 90.0),
+(2, 'Math', 'MTH101', 1, 350, 70.0),
+(3, 'Math', 'MTH101', 1, 300, 60.0),
+(4, 'Math', 'MTH101', 1, 275, 55.0),
+(5, 'Math', 'MTH101', 1, 200, 40.0),
+(6, 'Physics', 'PHY101', 1, 400, 80.0),
+(7, 'Physics', 'PHY101', 1, 320, 64.0),
+(8, 'Physics', 'PHY101', 1, 280, 56.0),
+(9, 'Physics', 'PHY101', 1, 150, 30.0);
+
+-- Drop procedure if exists
+DROP PROCEDURE IF EXISTS CountStudentsByPercentage;
+
+DELIMITER $$
+
+CREATE PROCEDURE CountStudentsByPercentage(IN input_course_code VARCHAR(10))
+BEGIN
+    SELECT 
+        input_course_code AS Course_Code,
+        SUM(CASE WHEN PERCENTAGE BETWEEN 70 AND 100 THEN 1 ELSE 0 END) AS `70-100%`,
+        SUM(CASE WHEN PERCENTAGE BETWEEN 60 AND 69 THEN 1 ELSE 0 END) AS `60-69%`,
+        SUM(CASE WHEN PERCENTAGE BETWEEN 50 AND 59 THEN 1 ELSE 0 END) AS `50-59%`,
+        SUM(CASE WHEN PERCENTAGE < 50 THEN 1 ELSE 0 END) AS `Below_50%`
+    FROM Student
+    WHERE COURSE_COD = input_course_code;
+END $$
+
+DELIMITER ;
+
+-- Call the procedure for 'MTH101'
+CALL CountStudentsByPercentage('MTH101');
+
+-- Call the procedure for 'PHY101'
+CALL CountStudentsByPercentage('PHY101');
