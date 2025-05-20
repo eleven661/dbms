@@ -1,0 +1,103 @@
+USE IndiaCityDB;
+
+-- Drop tables if they exist
+DROP TABLE IF EXISTS Categories;
+DROP TABLE IF EXISTS CitiesIndia;
+
+-- Create CitiesIndia table
+CREATE TABLE CitiesIndia (
+    pincode INT PRIMARY KEY,
+    nameofcity VARCHAR(50),
+    earliername VARCHAR(50),
+    area FLOAT,
+    population INT,
+    avgrainfall FLOAT
+);
+
+-- Create Categories table
+CREATE TABLE Categories (
+    Type VARCHAR(20),
+    pincode INT,
+    FOREIGN KEY (pincode) REFERENCES CitiesIndia(pincode)
+);
+
+-- Insert sample data into CitiesIndia
+INSERT INTO CitiesIndia VALUES
+(110001, 'Delhi', 'Indraprastha', 1500, 19000000, 800),
+(400001, 'Mumbai', 'Bombay', 603.4, 12400000, 2200),
+(411001, 'Pune', 'Poona', 250.5, 6000000, 700),
+(500001, 'Hyderabad', 'Bhagyanagar', 650, 10000000, 1100),
+(600001, 'Chennai', 'Madras', 426, 8000, 1200);
+
+-- Drop function if exists
+DROP FUNCTION IF EXISTS get_density;
+
+-- Create function to calculate population density
+DELIMITER $$
+CREATE FUNCTION get_density(pop INT, area FLOAT) RETURNS FLOAT
+DETERMINISTIC
+BEGIN
+    IF area = 0 THEN
+        RETURN 0;
+    END IF;
+    RETURN pop / area;
+END$$
+DELIMITER ;
+
+-- Drop procedure if exists
+DROP PROCEDURE IF EXISTS classify_density;
+
+-- Create procedure to classify density with error handling
+DELIMITER $$
+CREATE PROCEDURE classify_density()
+BEGIN
+    DECLARE done INT DEFAULT 0;
+    DECLARE v_pincode INT;
+    DECLARE v_population INT;
+    DECLARE v_area FLOAT;
+    DECLARE v_density FLOAT;
+
+    DECLARE city_cursor CURSOR FOR SELECT pincode, population, area FROM CitiesIndia;
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+
+    -- Clear Categories table before inserting
+    DELETE FROM Categories;
+
+    OPEN city_cursor;
+
+    city_loop: LOOP
+        FETCH city_cursor INTO v_pincode, v_population, v_area;
+        IF done THEN
+            LEAVE city_loop;
+        END IF;
+
+        -- Error check for population limits (use fixed messages only)
+        IF v_population < 10 THEN
+            SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Error: Population less than 10.';
+        ELSEIF v_population > 25718 THEN
+            SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Error: Population greater than 25718.';
+        END IF;
+
+        SET v_density = get_density(v_population, v_area);
+
+        IF v_density > 3000 THEN
+            INSERT INTO Categories VALUES ('High Density', v_pincode);
+        ELSEIF v_density BETWEEN 1000 AND 2999 THEN
+            INSERT INTO Categories VALUES ('Moderate Density', v_pincode);
+        ELSE
+            INSERT INTO Categories VALUES ('Low Density', v_pincode);
+        END IF;
+    END LOOP;
+
+    CLOSE city_cursor;
+END$$
+DELIMITER ;
+
+-- Call procedure to populate Categories (will error if population check fails)
+CALL classify_density();
+
+-- Display results
+SELECT * FROM CitiesIndia;
+SELECT * FROM Categories;
