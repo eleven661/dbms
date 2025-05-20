@@ -1,0 +1,171 @@
+-- DROP existing tables if any
+DROP TABLE IF EXISTS Loans;
+DROP TABLE IF EXISTS Borrowers;
+DROP TABLE IF EXISTS Books;
+DROP TABLE IF EXISTS Authors;
+
+-- Create tables
+CREATE TABLE Authors (
+    AuthorID INT PRIMARY KEY,
+    AuthorName VARCHAR(100),
+    Country VARCHAR(50)
+);
+
+CREATE TABLE Books (
+    BookID INT PRIMARY KEY,
+    Title VARCHAR(100),
+    AuthorID INT,
+    YearPublished INT,
+    FOREIGN KEY (AuthorID) REFERENCES Authors(AuthorID)
+);
+
+CREATE TABLE Borrowers (
+    BorrowerID INT PRIMARY KEY,
+    Name VARCHAR(100),
+    City VARCHAR(50)
+);
+
+CREATE TABLE Loans (
+    LoanID INT PRIMARY KEY,
+    BookID INT,
+    BorrowerID INT,
+    LoanDate DATE,
+    ReturnDate DATE,
+    FOREIGN KEY (BookID) REFERENCES Books(BookID),
+    FOREIGN KEY (BorrowerID) REFERENCES Borrowers(BorrowerID)
+);
+
+-- Insert sample data into Authors
+INSERT INTO Authors VALUES
+(1, 'J.K. Rowling', 'UK'),
+(2, 'George Orwell', 'UK'),
+(3, 'Jane Austen', 'UK'),
+(4, 'Mark Twain', 'USA');
+
+-- Insert sample data into Books
+INSERT INTO Books VALUES
+(101, 'Harry Potter and the Sorcerer''s Stone', 1, 1997),
+(102, '1984', 2, 1949),
+(103, 'Pride and Prejudice', 3, 1813),
+(104, 'Adventures of Huckleberry Finn', 4, 1884),
+(105, 'Animal Farm', 2, 1945);
+
+-- Insert sample data into Borrowers
+INSERT INTO Borrowers VALUES
+(201, 'Alice', 'New York'),
+(202, 'Bob', 'London'),
+(203, 'Charlie', 'New York'),
+(204, 'Diana', 'Paris');
+
+-- Insert sample data into Loans
+INSERT INTO Loans VALUES
+(301, 101, 201, '2025-04-01', NULL),
+(302, 102, 202, '2025-03-15', '2025-04-05'),
+(303, 103, 203, '2025-04-10', NULL),
+(304, 104, 201, '2025-04-11', NULL);
+
+-- 1. INNER JOIN: Books with their authors
+SELECT b.Title, a.AuthorName
+FROM Books b
+INNER JOIN Authors a ON b.AuthorID = a.AuthorID;
+
+-- 2. LEFT JOIN: Borrowers and their loaned books (if any)
+SELECT br.Name, l.LoanDate, b.Title
+FROM Borrowers br
+LEFT JOIN Loans l ON br.BorrowerID = l.BorrowerID
+LEFT JOIN Books b ON l.BookID = b.BookID;
+
+-- 3. RIGHT JOIN: Books and borrowers who loaned them (include books not loaned)
+SELECT b.Title, br.Name
+FROM Books b
+RIGHT JOIN Loans l ON b.BookID = l.BookID
+RIGHT JOIN Borrowers br ON l.BorrowerID = br.BorrowerID;
+
+-- 4. FULL OUTER JOIN simulation with UNION: Borrowers and books loaned or not
+SELECT br.Name, b.Title
+FROM Borrowers br
+LEFT JOIN Loans l ON br.BorrowerID = l.BorrowerID
+LEFT JOIN Books b ON l.BookID = b.BookID
+
+UNION
+
+SELECT br.Name, b.Title
+FROM Books b
+LEFT JOIN Loans l ON b.BookID = l.BookID
+LEFT JOIN Borrowers br ON l.BorrowerID = br.BorrowerID;
+
+-- 5. Subquery: Books loaned by 'Alice'
+SELECT Title FROM Books
+WHERE BookID IN (
+    SELECT BookID FROM Loans
+    WHERE BorrowerID = (SELECT BorrowerID FROM Borrowers WHERE Name = 'Alice')
+);
+
+-- 6. Correlated Subquery: Books with number of times loaned
+SELECT b.Title,
+    (SELECT COUNT(*) FROM Loans l WHERE l.BookID = b.BookID) AS LoanCount
+FROM Books b;
+
+-- 7. Create a View: Currently loaned books (ReturnDate IS NULL)
+CREATE OR REPLACE VIEW CurrentLoans AS
+SELECT br.Name AS Borrower, b.Title AS BookTitle, l.LoanDate
+FROM Loans l
+JOIN Borrowers br ON l.BorrowerID = br.BorrowerID
+JOIN Books b ON l.BookID = b.BookID
+WHERE l.ReturnDate IS NULL;
+
+-- 8. Query the View CurrentLoans
+SELECT * FROM CurrentLoans;
+
+-- 9. Subquery with EXISTS: Borrowers who have borrowed '1984'
+SELECT DISTINCT br.Name
+FROM Borrowers br
+WHERE EXISTS (
+    SELECT 1 FROM Loans l
+    JOIN Books b ON l.BookID = b.BookID
+    WHERE b.Title = '1984' AND l.BorrowerID = br.BorrowerID
+);
+
+-- 10. Aggregate Join: Total books loaned per borrower
+SELECT br.Name, COUNT(l.LoanID) AS TotalLoans
+FROM Borrowers br
+LEFT JOIN Loans l ON br.BorrowerID = l.BorrowerID
+GROUP BY br.Name;
+
+-- Query 1 output: Books with authors
+SELECT b.Title, a.AuthorName FROM Books b INNER JOIN Authors a ON b.AuthorID = a.AuthorID;
+
+-- Query 2 output: Borrowers and their loaned books (if any)
+SELECT br.Name, l.LoanDate, b.Title FROM Borrowers br LEFT JOIN Loans l ON br.BorrowerID = l.BorrowerID LEFT JOIN Books b ON l.BookID = b.BookID;
+
+-- Query 3 output: Books and borrowers who loaned them
+SELECT b.Title, br.Name FROM Books b RIGHT JOIN Loans l ON b.BookID = l.BookID RIGHT JOIN Borrowers br ON l.BorrowerID = br.BorrowerID;
+
+-- Query 4 output: FULL OUTER JOIN simulation result
+SELECT br.Name, b.Title FROM Borrowers br LEFT JOIN Loans l ON br.BorrowerID = l.BorrowerID LEFT JOIN Books b ON l.BookID = b.BookID
+UNION
+SELECT br.Name, b.Title FROM Books b LEFT JOIN Loans l ON b.BookID = l.BookID LEFT JOIN Borrowers br ON l.BorrowerID = br.BorrowerID;
+
+-- Query 5 output: Books loaned by 'Alice'
+SELECT Title FROM Books WHERE BookID IN (SELECT BookID FROM Loans WHERE BorrowerID = (SELECT BorrowerID FROM Borrowers WHERE Name = 'Alice'));
+
+-- Query 6 output: Books with loan counts
+SELECT b.Title, (SELECT COUNT(*) FROM Loans l WHERE l.BookID = b.BookID) AS LoanCount FROM Books b;
+
+-- Create view (already created, just run)
+CREATE OR REPLACE VIEW CurrentLoans AS
+SELECT br.Name AS Borrower, b.Title AS BookTitle, l.LoanDate
+FROM Loans l
+JOIN Borrowers br ON l.BorrowerID = br.BorrowerID
+JOIN Books b ON l.BookID = b.BookID
+WHERE l.ReturnDate IS NULL;
+
+-- Query 8 output: Query CurrentLoans view
+SELECT * FROM CurrentLoans;
+
+-- Query 9 output: Borrowers who borrowed '1984'
+SELECT DISTINCT br.Name FROM Borrowers br WHERE EXISTS (
+    SELECT 1 FROM Loans l JOIN Books b ON l.BookID = b.BookID WHERE b.Title = '1984' AND l.BorrowerID = br.BorrowerID);
+
+-- Query 10 output: Total books loaned per borrower
+SELECT br.Name, COUNT(l.LoanID) AS TotalLoans FROM Borrowers br LEFT JOIN Loans l ON br.BorrowerID = l.BorrowerID GROUP BY br.Name;
