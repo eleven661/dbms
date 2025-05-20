@@ -1,0 +1,96 @@
+-- Create DB and use it
+CREATE DATABASE IF NOT EXISTS LibraryDB;
+USE LibraryDB;
+
+-- Drop tables if exist
+DROP TABLE IF EXISTS Borrower;
+DROP TABLE IF EXISTS Fine;
+
+-- Create Borrower table
+CREATE TABLE Borrower (
+    Roll_no INT,
+    Name VARCHAR(100),
+    DateofIssue DATE,
+    NameofBook VARCHAR(100),
+    Status CHAR(1), -- 'I' for issued, 'R' for returned
+    PRIMARY KEY (Roll_no, NameofBook)
+);
+
+-- Create Fine table
+CREATE TABLE Fine (
+    Roll_no INT,
+    Date DATE,
+    Amt DECIMAL(10,2),
+    PRIMARY KEY (Roll_no, Date)
+);
+
+-- Insert some sample data into Borrower
+INSERT INTO Borrower VALUES 
+(101, 'Alice', DATE_SUB(CURDATE(), INTERVAL 20 DAY), 'Database Systems', 'I'),
+(102, 'Bob', DATE_SUB(CURDATE(), INTERVAL 35 DAY), 'Operating Systems', 'I'),
+(103, 'Charlie', DATE_SUB(CURDATE(), INTERVAL 10 DAY), 'Networks', 'I');
+
+-- Drop procedure if exists
+DROP PROCEDURE IF EXISTS CalculateFine;
+
+DELIMITER $$
+
+CREATE PROCEDURE CalculateFine(IN inputRoll_no INT, IN inputBookName VARCHAR(100))
+BEGIN
+    DECLARE date_issue DATE;
+    DECLARE days_diff INT;
+    DECLARE fine_amt DECIMAL(10,2);
+    DECLARE book_status CHAR(1);
+    DECLARE no_borrower_found CONDITION FOR SQLSTATE '02000';
+
+    -- Handler for no data found
+    DECLARE CONTINUE HANDLER FOR no_borrower_found 
+    BEGIN
+        SELECT CONCAT('No borrowed book found for Roll_no: ', inputRoll_no, ' and Book: ', inputBookName) AS Message;
+    END;
+
+    -- Select date of issue and status
+    SELECT DateofIssue, Status INTO date_issue, book_status
+    FROM Borrower
+    WHERE Roll_no = inputRoll_no AND NameofBook = inputBookName;
+
+    -- Calculate days difference between today and date of issue
+    SET days_diff = DATEDIFF(CURDATE(), date_issue);
+
+    IF book_status = 'I' THEN
+        -- Calculate fine based on days_diff
+        IF days_diff BETWEEN 15 AND 30 THEN
+            SET fine_amt = days_diff * 5;
+        ELSEIF days_diff > 30 THEN
+            SET fine_amt = (30 * 5) + ((days_diff - 30) * 50);
+        ELSE
+            SET fine_amt = 0;
+        END IF;
+
+        -- Update status to 'R' (returned)
+        UPDATE Borrower
+        SET Status = 'R'
+        WHERE Roll_no = inputRoll_no AND NameofBook = inputBookName;
+
+        -- Insert fine record if fine_amt > 0
+        IF fine_amt > 0 THEN
+            INSERT INTO Fine (Roll_no, Date, Amt)
+            VALUES (inputRoll_no, CURDATE(), fine_amt);
+            SELECT CONCAT('Fine calculated: Rs. ', fine_amt) AS Message;
+        ELSE
+            SELECT 'No fine applicable.' AS Message;
+        END IF;
+
+    ELSE
+        SELECT 'Book already returned or invalid status.' AS Message;
+    END IF;
+
+END $$
+
+DELIMITER ;
+
+-- Call procedure with input values (example)
+CALL CalculateFine(101, 'Database Systems');
+CALL CalculateFine(102, 'Operating Systems');
+CALL CalculateFine(103, 'Networks');
+CALL CalculateFine(999, 'Nonexistent Book'); -- to test no data found
